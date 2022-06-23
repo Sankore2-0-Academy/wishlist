@@ -9,4 +9,7 @@ source ./scripts/setting.conf
 # near call $SUB_ACCOUNT read_wishlist '{"start": 0, "limit": 10}' --accountId yto.testnet
 
 # Remove car from wishlist
-near call $SUB_ACCOUNT delete_car '{"id": 10}' --accountId yto.testnet
+# near call $SUB_ACCOUNT delete_car '{"id": 1}' --accountId yto.testnet
+
+# Cross contract call for save_name in test.wajakoya.testnet
+near call $SUB_ACCOUNT xcc_counter '{"name": "Destiny"}' --accountId yto.testnet --gas 140000000000000

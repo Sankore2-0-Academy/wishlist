@@ -13,7 +13,7 @@
 
 // To conserve gas, efficient serialization is achieved through Borsh (http://borsh.io/)
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::{env, near_bindgen, setup_alloc, Promise};
+use near_sdk::{env, near_bindgen, setup_alloc, Promise, ext_contract};
 use near_sdk::collections::LookupMap;
 
 mod vehicle;
@@ -23,6 +23,22 @@ use vehicle::Vehicle;
 use user::User;
 
 setup_alloc!();
+
+const COUNTER_XCC_GAS: u64 = 7_000_000_000_000;
+const COUNTER_DEPOSIT: u128 = 0;
+
+const WISHLIST_XCC_GAS: u64 = 5_000_000_000_000;
+const WISHLIST_DEPOSIT: u128 = 0;
+
+#[ext_contract(ext_counter)]
+pub trait Counter {
+    fn save_name(&mut self, name: String) -> String;
+}
+
+#[ext_contract(ext_self)]
+pub trait ExtSelf {
+    fn response_callback(&mut self) -> String;
+}
 
 // Structs in Rust are similar to other languages, and may include impl keyword as shown below
 // Note: the names of the structs are not important when calling the smart contract, but the function names are
@@ -98,6 +114,28 @@ impl Wishlist {
             None
         }
     }
+
+    pub fn xcc_counter(&self, name: String) -> Promise {
+        ext_counter::save_name(name, &self.counter_account_id(), COUNTER_DEPOSIT, COUNTER_XCC_GAS)
+        .then(ext_self::response_callback(&env::current_account_id(), WISHLIST_DEPOSIT, WISHLIST_XCC_GAS))
+    }
+
+    #[private]
+    pub fn response_callback(&mut self, #[callback] name: String) -> String {
+        let mut result = String::from(name);
+        result.push_str(" : Processed in wishlist smart contract");
+        result
+    }
+
+    fn counter_account_id(&self) -> String {
+        "test.wajakoya.testnet".to_string()
+    }
+
+    /**
+     * ==============================================================================
+     * STORAGE STAKING
+     * ==============================================================================
+     */
 
     fn initial_storage(&self) -> u64 {
         let initial_storage = env::storage_usage();
@@ -194,6 +232,7 @@ mod tests {
         testing_env!(context);
         let mut contract = Wishlist::default();
         let params = get_params();
+
         contract.add_car(params.0, params.1, params.2, params.3, params.4, params.5);
 
         if let Some(vehicles) = contract.read_wishlist(0, 3) {
@@ -220,6 +259,7 @@ mod tests {
             log(b"Error reading wishlist");
         }
 
+        // Remove functionality
         contract.delete_car(0);
 
         if let Some(vehicles) = contract.read_wishlist(0, 3) {
