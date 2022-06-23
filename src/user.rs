@@ -1,35 +1,45 @@
-use std::collections::HashMap;
+use near_sdk::borsh::{self, BorshSerialize, BorshDeserialize};
+use near_sdk::serde::{Serialize, Deserialize};
+use near_sdk::{near_bindgen};
 
 use crate::vehicle::Vehicle;
 
-
+#[near_bindgen]
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
 pub struct User {
- pub email: String,
- pub vehicles: HashMap<String, Vehicle>,
+ vehicles: Vec<Vehicle>,
 }
 
+impl Default for User {
+  fn default() -> Self {
+    Self {
+      vehicles: vec![]
+    }
+  }
+}
+
+#[near_bindgen]
 impl User {
- pub fn new(email: &str) -> Self {
+ pub fn new_user() -> Self {
   Self {
-   email: email.to_string(),
-   vehicles: HashMap::new()
+   vehicles: vec![]
   }
  }
 
- pub fn add(&mut self, name: &str, model: &str, mileage: u64, year: &str, price: f64) {
-  let vehicle: Vehicle = Vehicle::new(name.to_string(), model.to_string(), mileage, year.to_string(), price);
-  let key: &str = self.email.as_str();
-  self.vehicles.insert(key.to_string(), vehicle);
+ pub fn add(&mut self, image: String, name: String, model: String, mileage: u64, year: String, price: f64) {
+  let vehicle: Vehicle = Vehicle::new(image, name, model, mileage, year, price);
+  self.vehicles.push(vehicle);
  }
 
- pub fn show(&self) -> Option<&Vehicle> {
-  match self.vehicles.get(&self.email) {
-   Some(vehicle) => Some(vehicle),
-   None => None
-  }
+ pub fn show(&self, start: u32, limit: u32) -> Vec<Vehicle> {
+  let result: Vec<Vehicle> = self.vehicles.iter().skip(start as usize).take(limit as usize).cloned().collect();
+  result
  }
 
- pub fn remove(&mut self) {
-  self.vehicles.remove(&self.email);
+ pub fn remove(&mut self, index: u64) -> Vehicle {
+  let size: u64 = self.vehicles.len() as u64;
+  assert!(size > 0 && index < size, "Wishlist Empty!");
+  self.vehicles.remove(index as usize)
  }
 }
